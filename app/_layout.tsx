@@ -1,29 +1,39 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import * as React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import LoginScreen from "./login";
+import Index from "./index";
+import ManagementScreen from "./manage";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
-
+function MainTabs() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName: keyof typeof MaterialCommunityIcons.glyphMap = "home";
+          if (route.name === "Control") iconName = "thermometer";
+          else if (route.name === "Management") iconName = "clipboard-list";
+          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: "#2196F3",
+        tabBarInactiveTintColor: "#999"
+      })}
+    >
+      <Tab.Screen name="Control" component={Index} options={{ title: "Điều khiển" }} />
+      <Tab.Screen name="Management" component={ManagementScreen} options={{ title: "Quản lý" }} />
+    </Tab.Navigator>
+  );
+}
+
+export default function App() {
+  return (
+    <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Index" component={MainTabs} />
+    </Stack.Navigator>
   );
 }
