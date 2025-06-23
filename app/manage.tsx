@@ -1,29 +1,52 @@
 // screens/ManagementScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Card } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function ManagementScreen() {
-  // Danh sách thời gian mở thùng hàng mẫu
-  const [openTimes] = useState([
-    "15/06/2025 - 09:00",
-    "15/06/2025 - 12:30",
-    "16/06/2025 - 08:45",
-    "16/06/2025 - 14:10",
-    "17/06/2025 - 09:00",
-    "17/06/2025 - 12:30",
-    "18/06/2025 - 08:45",
-    "18/06/2025 - 14:10"
-  ]);
+  const [openCount, setOpenCount] = useState(0);
+  const [closeCount, setCloseCount] = useState(0);
+  const [openTimes, setOpenTimes] = useState<string[]>([]);
+  const [closeTimes, setCloseTimes] = useState<string[]>([]);
+  const [lastBoxState, setLastBoxState] = useState<number|null>(null);
+  const [initialized, setInitialized] = useState(false);
   const [showOpenTimes, setShowOpenTimes] = useState(false);
+  const [showCloseTimes, setShowCloseTimes] = useState(false);
+
+  useEffect(() => {
+    const fetchBoxState = async () => {
+      try {
+        const boxRes = await fetch("http://kenhsangtaotre.ddns.net:8080/-10Z9Di_9AwA695EVyqn7vPkdwb7r1wD/get/V3");
+        const boxVal = await boxRes.text();
+        const boxArr = JSON.parse(boxVal);
+        const boxNum = parseInt(boxArr[0]);
+        if (!isNaN(boxNum)) {
+          if (initialized && lastBoxState !== null && boxNum !== lastBoxState) {
+            if (boxNum === 0) {
+              setOpenCount(prev => prev + 1);
+              setOpenTimes(prev => [...prev, new Date().toLocaleString()]);
+            } else if (boxNum === 1) {
+              setCloseCount(prev => prev + 1);
+              setCloseTimes(prev => [...prev, new Date().toLocaleString()]);
+            }
+          }
+          setLastBoxState(boxNum);
+          if (!initialized) setInitialized(true);
+        }
+      } catch (e) {}
+    };
+    fetchBoxState();
+    const interval = setInterval(fetchBoxState, 1000);
+    return () => clearInterval(interval);
+  }, [lastBoxState, initialized]);
 
   // Danh sách đơn hàng mẫu (cập nhật thêm tên, trạng thái, thời gian nhập/xuất)
   const [orders, setOrders] = useState([
     {
       id: 1,
       name: "Đơn hàng A",
-      status: "delivered", // delivered: đã giao, pending: chưa giao
+      status: "delivered",
       importTime: "15/06/2025 - 10:23",
       exportTime: "16/06/2025 - 11:15",
       expanded: false
@@ -71,13 +94,13 @@ export default function ManagementScreen() {
         <View style={styles.row}>
           <MaterialCommunityIcons name="package-variant" color="#2196F3" size={36} />
           <Text style={styles.info}>
-            Số lần mở: <Text style={styles.num}>{openTimes.length}</Text>
+            Số lần mở: <Text style={styles.num1}>{openCount}</Text>
           </Text>
         </View>
         <View style={styles.row}>
           <MaterialCommunityIcons name="box" color="#43A047" size={36} />
           <Text style={styles.info}>
-            Số lần đóng: <Text style={styles.num}>22</Text>
+            Số lần đóng: <Text style={styles.num2}>{closeCount}</Text>
           </Text>
         </View>
         {/* Expandable list thời gian mở thùng hàng */}
@@ -92,6 +115,24 @@ export default function ManagementScreen() {
             <View style={{ paddingLeft: 10, maxHeight: 120 }}>
               <ScrollView style={{ maxHeight: 120 }}>
                 {openTimes.map((time, idx) => (
+                  <Text key={idx} style={{ color: '#1a3557', marginVertical: 2 }}>• {time}</Text>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+        {/* Lịch sử đóng thùng hàng */}
+        <View style={{ marginTop: 10 }}>
+          <Text
+            style={{ color: '#43A047', fontWeight: 'bold', marginBottom: 6 }}
+            onPress={() => setShowCloseTimes(!showCloseTimes)}
+          >
+            {showCloseTimes ? 'Ẩn thời gian đóng thùng hàng ▲' : 'Xem thời gian đóng thùng hàng ▼'}
+          </Text>
+          {showCloseTimes && (
+            <View style={{ paddingLeft: 10, maxHeight: 120 }}>
+              <ScrollView style={{ maxHeight: 120 }}>
+                {closeTimes.map((time, idx) => (
                   <Text key={idx} style={{ color: '#1a3557', marginVertical: 2 }}>• {time}</Text>
                 ))}
               </ScrollView>
@@ -162,7 +203,8 @@ const styles = StyleSheet.create({
   card: { padding: 18, borderRadius: 16, marginBottom: 24, backgroundColor: "#fff", elevation: 2 },
   row: { flexDirection: "row", alignItems: "center", marginVertical: 8 },
   info: { fontSize: 18, marginLeft: 16, color: "#222" },
-  num: { color: "#2196F3", fontWeight: "bold", fontSize: 20 },
+  num1: { color: "#2196F3", fontWeight: "bold", fontSize: 20 },
+  num2: { color: "#43A047", fontWeight: "bold", fontSize: 20 },
   orderBox: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
