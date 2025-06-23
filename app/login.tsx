@@ -18,7 +18,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         />
         <Text style={styles.title}>Đăng nhập</Text>
         <TextInput
-          placeholder="Nhập token"
+          placeholder="Nhập tên đăng nhập"
           value={token}
           onChangeText={setToken}
           style={styles.input}
