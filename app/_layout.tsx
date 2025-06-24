@@ -23,7 +23,7 @@ function MainTabs() {
         tabBarInactiveTintColor: "#999"
       })}
     >
-      <Tab.Screen name="Control" component={Index} options={{ title: "Điều khiển" }} />
+      <Tab.Screen name="Control" component={Index} options={{ title: "Trạng thái" }} />
       <Tab.Screen name="Management" component={ManagementScreen} options={{ title: "Quản lý" }} />
     </Tab.Navigator>
   );
