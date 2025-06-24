@@ -179,16 +179,6 @@ export default function ManagementScreen() {
                   <Text style={{ color: '#222', fontSize: 15, marginTop: 2 }}>
                     Thời gian xuất đơn: <Text style={{ fontWeight: 'bold' }}>{order.exportTime || '---'}</Text>
                   </Text>
-                  <View style={{ alignItems: 'center', marginTop: 14 }}>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => handleDeleteOrder(order.id)}
-                      activeOpacity={0.7}
-                    >
-                      <MaterialCommunityIcons name="delete" color="#fff" size={20} />
-                      <Text style={styles.deleteButtonText}>Xoá đơn</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
               )}
             </View>
