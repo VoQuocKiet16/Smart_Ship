@@ -13,6 +13,7 @@ export default function ManagementScreen() {
   const [initialized, setInitialized] = useState(false);
   const [showOpenTimes, setShowOpenTimes] = useState(false);
   const [showCloseTimes, setShowCloseTimes] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBoxState = async () => {
@@ -41,41 +42,41 @@ export default function ManagementScreen() {
     return () => clearInterval(interval);
   }, [lastBoxState, initialized]);
 
-  // Danh sách đơn hàng mẫu (cập nhật thêm tên, trạng thái, thời gian nhập/xuất)
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      name: "Đơn hàng A",
-      status: "delivered",
-      importTime: "15/06/2025 - 10:23",
-      exportTime: "16/06/2025 - 11:15",
-      expanded: false
-    },
-    {
-      id: 2,
-      name: "Đơn hàng B",
-      status: "pending",
-      importTime: "17/06/2025 - 09:10",
-      exportTime: "",
-      expanded: false
-    },
-    {
-      id: 3,
-      name: "Đơn hàng C",
-      status: "delivered",
-      importTime: "18/06/2025 - 08:00",
-      exportTime: "18/06/2025 - 15:00",
-      expanded: false
-    },
-    {
-      id: 4,
-      name: "Đơn hàng D",
-      status: "pending",
-      importTime: "19/06/2025 - 10:00",
-      exportTime: "",
-      expanded: false
-    }
-  ]);
+  // Hàm lấy danh sách đơn hàng từ API
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("http://kenhsangtaotre.ddns.net:8080/-10Z9Di_9AwA695EVyqn7vPkdwb7r1wD/get/V2");
+      const text = await res.text();
+      console.log("Dữ liệu đơn hàng trả về:", text);
+      let raw = text;
+      try {
+        const parsedJson = JSON.parse(text);
+        if (Array.isArray(parsedJson)) {
+          raw = parsedJson[0] || "";
+        }
+      } catch (e) {}
+      // Ví dụ dữ liệu: #2738488#1##2738499#0##2738500#1#
+      const items = raw.split("##").filter(Boolean);
+      const now = new Date().toLocaleString();
+      const parsed = items.map(item => {
+        const parts = item.split("#").filter(Boolean);
+        return {
+          id: parts[0] || "",
+          status: parts[1] === "1" ? "delivered" : "pending",
+          importTime: now, // lấy thời gian request làm thời gian nhập
+          exportTime: parts[1] === "1" ? now : "",
+          expanded: false
+        };
+      });
+      setOrders(parsed);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000); // cập nhật mỗi 10 giây
+    return () => clearInterval(interval);
+  }, []);
 
   // Xoá đơn hàng
   const handleDeleteOrder = (id: number) => {
@@ -156,7 +157,7 @@ export default function ManagementScreen() {
                     size={28}
                   />
                   <View style={{ marginLeft: 12 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#1a3557' }}>{order.name}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#1a3557' }}>Mã đơn hàng: {order.id}</Text>
                     <Text style={{ color: order.status === 'delivered' ? '#43A047' : '#FFB300', fontWeight: 'bold' }}>
                       {order.status === 'delivered' ? 'Đã giao' : 'Chưa giao'}
                     </Text>
