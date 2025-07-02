@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Card } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ManagementScreen() {
   const [openCount, setOpenCount] = useState(0);
@@ -33,7 +34,9 @@ export default function ManagementScreen() {
             }
           }
           setLastBoxState(boxNum);
-          if (!initialized) setInitialized(true);
+          if (!initialized) {
+            setInitialized(true);
+          }
         }
       } catch (e) {}
     };
@@ -42,12 +45,38 @@ export default function ManagementScreen() {
     return () => clearInterval(interval);
   }, [lastBoxState, initialized]);
 
-  // Hàm lấy danh sách đơn hàng từ API
+  // Lấy lịch sử đơn hàng từ AsyncStorage
+  const loadOrdersFromStorage = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('orders');
+      if (stored) setOrders(JSON.parse(stored));
+      else setOrders([]);
+    } catch (e) {}
+  };
+
+  // Lưu đơn hàng vào AsyncStorage (cập nhật nếu đã có)
+  const saveOrderToStorage = async (newOrder: any) => {
+    try {
+      const stored = await AsyncStorage.getItem('orders');
+      let ordersArr = stored ? JSON.parse(stored) : [];
+      const idx = ordersArr.findIndex((o: any) => o.id === newOrder.id);
+      if (idx !== -1) {
+        // Đã có đơn hàng này, cập nhật trạng thái và các trường liên quan
+        ordersArr[idx] = { ...ordersArr[idx], ...newOrder };
+      } else {
+        // Thêm mới vào đầu danh sách
+        ordersArr = [newOrder, ...ordersArr];
+      }
+      await AsyncStorage.setItem('orders', JSON.stringify(ordersArr));
+      setOrders(ordersArr);
+    } catch (e) {}
+  };
+
+  // Lấy đơn hàng mới từ API, lưu vào AsyncStorage, reset API về 0
   const fetchOrders = async () => {
     try {
       const res = await fetch("http://kenhsangtaotre.ddns.net:8080/-10Z9Di_9AwA695EVyqn7vPkdwb7r1wD/get/V2");
       const text = await res.text();
-      console.log("Dữ liệu đơn hàng trả về:", text);
       let raw = text;
       try {
         const parsedJson = JSON.parse(text);
@@ -55,32 +84,43 @@ export default function ManagementScreen() {
           raw = parsedJson[0] || "";
         }
       } catch (e) {}
-      // Ví dụ dữ liệu: #2738488#1##2738499#0##2738500#1#
       const items = raw.split("##").filter(Boolean);
-      const now = new Date().toLocaleString();
-      const parsed = items.map(item => {
-        const parts = item.split("#").filter(Boolean);
-        return {
-          id: parts[0] || "",
-          status: parts[1] === "1" ? "delivered" : "pending",
-          importTime: now, // lấy thời gian request làm thời gian nhập
-          exportTime: parts[1] === "1" ? now : "",
-          expanded: false
-        };
-      });
-      setOrders(parsed);
+      if (items.length > 0) {
+        const now = new Date().toLocaleString();
+        for (const item of items) {
+          const parts = item.split("#").filter(Boolean);
+          if (parts.length >= 2) {
+            const newOrder = {
+              id: parts[0] || "",
+              status: parts[1] === "1" ? "delivered" : "pending",
+              importTime: now,
+              exportTime: parts[1] === "1" ? now : "",
+              expanded: false
+            };
+            await saveOrderToStorage(newOrder);
+          }
+        }
+        // Reset API về 0
+        await fetch("http://kenhsangtaotre.ddns.net:8080/-10Z9Di_9AwA695EVyqn7vPkdwb7r1wD/update/V2?value=0");
+      }
     } catch (e) {}
   };
 
   useEffect(() => {
-    fetchOrders();
+    loadOrdersFromStorage();
     const interval = setInterval(fetchOrders, 10000); // cập nhật mỗi 10 giây
     return () => clearInterval(interval);
   }, []);
 
-  // Xoá đơn hàng
-  const handleDeleteOrder = (id: number) => {
-    setOrders(orders.filter(order => order.id !== id));
+  // Xoá đơn hàng khỏi AsyncStorage
+  const handleDeleteOrder = async (id: number) => {
+    try {
+      const stored = await AsyncStorage.getItem('orders');
+      let ordersArr = stored ? JSON.parse(stored) : [];
+      ordersArr = ordersArr.filter((order: any) => order.id !== id);
+      await AsyncStorage.setItem('orders', JSON.stringify(ordersArr));
+      setOrders(ordersArr);
+    } catch (e) {}
   };
 
   // Toggle expand/collapse đơn hàng
@@ -179,6 +219,10 @@ export default function ManagementScreen() {
                   <Text style={{ color: '#222', fontSize: 15, marginTop: 2 }}>
                     Thời gian xuất đơn: <Text style={{ fontWeight: 'bold' }}>{order.exportTime || '---'}</Text>
                   </Text>
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteOrder(order.id)}>
+                    <MaterialCommunityIcons name="delete" color="#fff" size={20} />
+                    <Text style={styles.deleteButtonText}>Xoá đơn hàng</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
