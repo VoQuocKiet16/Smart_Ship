@@ -223,7 +223,9 @@ export default function ManagementScreen() {
                     size={28}
                   />
                   <View style={{ marginLeft: 12 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#1a3557' }}>Mã đơn hàng: {order.id}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#1a3557' }}>
+                      Mã đơn hàng: {order.id.length > 5 ? order.id.slice(0, 5) + '...' : order.id}
+                    </Text>
                     <Text style={{ color: order.status === 'delivered' ? '#43A047' : '#FFB300', fontWeight: 'bold' }}>
                       {order.status === 'delivered' ? 'Đã giao' : 'Chưa giao'}
                     </Text>
