@@ -15,6 +15,7 @@ export default function ManagementScreen() {
   const [showOpenTimes, setShowOpenTimes] = useState(false);
   const [showCloseTimes, setShowCloseTimes] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const [orderHistory, setOrderHistory] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBoxState = async () => {
@@ -54,6 +55,15 @@ export default function ManagementScreen() {
     } catch (e) {}
   };
 
+  // Lấy lịch sử đơn hàng từ AsyncStorage
+  const loadOrderHistoryFromStorage = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('orderHistory');
+      if (stored) setOrderHistory(JSON.parse(stored));
+      else setOrderHistory([]);
+    } catch (e) {}
+  };
+
   // Lưu đơn hàng vào AsyncStorage (cập nhật nếu đã có)
   const saveOrderToStorage = async (newOrder: any) => {
     try {
@@ -69,6 +79,17 @@ export default function ManagementScreen() {
       }
       await AsyncStorage.setItem('orders', JSON.stringify(ordersArr));
       setOrders(ordersArr);
+    } catch (e) {}
+  };
+
+  // Lưu đơn hàng vào lịch sử
+  const saveOrderToHistory = async (order: any) => {
+    try {
+      const stored = await AsyncStorage.getItem('orderHistory');
+      let historyArr = stored ? JSON.parse(stored) : [];
+      historyArr = [order, ...historyArr];
+      await AsyncStorage.setItem('orderHistory', JSON.stringify(historyArr));
+      setOrderHistory(historyArr);
     } catch (e) {}
   };
 
@@ -108,18 +129,23 @@ export default function ManagementScreen() {
 
   useEffect(() => {
     loadOrdersFromStorage();
+    loadOrderHistoryFromStorage();
     const interval = setInterval(fetchOrders, 10000); // cập nhật mỗi 10 giây
     return () => clearInterval(interval);
   }, []);
 
-  // Xoá đơn hàng khỏi AsyncStorage
+  // Sửa lại hàm xoá đơn hàng: chuyển sang lịch sử
   const handleDeleteOrder = async (id: number) => {
     try {
       const stored = await AsyncStorage.getItem('orders');
       let ordersArr = stored ? JSON.parse(stored) : [];
+      const orderToDelete = ordersArr.find((order: any) => order.id === id);
       ordersArr = ordersArr.filter((order: any) => order.id !== id);
       await AsyncStorage.setItem('orders', JSON.stringify(ordersArr));
       setOrders(ordersArr);
+      if (orderToDelete) {
+        await saveOrderToHistory(orderToDelete);
+      }
     } catch (e) {}
   };
 
@@ -219,10 +245,12 @@ export default function ManagementScreen() {
                   <Text style={{ color: '#222', fontSize: 15, marginTop: 2 }}>
                     Thời gian xuất đơn: <Text style={{ fontWeight: 'bold' }}>{order.exportTime || '---'}</Text>
                   </Text>
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteOrder(order.id)}>
-                    <MaterialCommunityIcons name="delete" color="#fff" size={20} />
-                    <Text style={styles.deleteButtonText}>Xoá đơn hàng</Text>
-                  </TouchableOpacity>
+                  {order.status === 'delivered' && (
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteOrder(order.id)}>
+                      <MaterialCommunityIcons name="delete" color="#fff" size={20} />
+                      <Text style={styles.deleteButtonText}>Xoá đơn hàng</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>

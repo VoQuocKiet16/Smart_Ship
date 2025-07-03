@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "./login";
 import Index from "./index";
 import ManagementScreen from "./manage";
+import OrderHistoryScreen from "./orderHistory";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const Stack = createNativeStackNavigator();
@@ -17,6 +18,7 @@ function MainTabs() {
           let iconName: keyof typeof MaterialCommunityIcons.glyphMap = "home";
           if (route.name === "Control") iconName = "thermometer";
           else if (route.name === "Management") iconName = "clipboard-list";
+          else if (route.name === "OrderHistory") iconName = "history";
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#2196F3",
@@ -25,6 +27,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Control" component={Index} options={{ title: "Trạng thái" }} />
       <Tab.Screen name="Management" component={ManagementScreen} options={{ title: "Quản lý" }} />
+      <Tab.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: "Lịch sử đơn" }} />
     </Tab.Navigator>
   );
 }
